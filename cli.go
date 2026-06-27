@@ -21,26 +21,28 @@ func cliMain() {
 
 	fileSize, rangesSupported, filename, err := fetchFileInfo(urlStr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s: %v\n", T("Error"), err)
 		os.Exit(1)
 	}
 
 	if fileSize > 0 && rangesSupported {
-		fmt.Printf("File: %s (%s)\nConnections: %d\n\n", filename, formatSize(fileSize), conns)
+		fmt.Printf("%s: %s (%s), %d %s\n\n",
+			T("File"), filename, formatSize(fileSize), conns, T("ParallelConns"))
 		startTime := time.Now()
 		parallelDownloadCLI(urlStr, filename, fileSize, conns, startTime)
 		elapsed := time.Since(startTime)
 		speed := formatSize(int64(float64(fileSize)/elapsed.Seconds())) + "/s"
-		fmt.Printf("\nDone: %s (%s in %s, %s)\n", filename, formatSize(fileSize), formatDuration(elapsed), speed)
+		fmt.Printf("\n%s: %s (%s, %s)\n", T("Done"), filename, formatSize(fileSize), speed)
 	} else if fileSize > 0 {
-		fmt.Printf("File: %s (%s) - single connection\n", filename, formatSize(fileSize))
+		fmt.Printf("%s: %s (%s), %s\n",
+			T("File"), filename, formatSize(fileSize), T("SingleConnection"))
 		startTime := time.Now()
 		singleDownloadCLI(urlStr, filename, startTime)
 		elapsed := time.Since(startTime)
 		speed := formatSize(int64(float64(fileSize)/elapsed.Seconds())) + "/s"
-		fmt.Printf("\nDone: %s (%s in %s, %s)\n", filename, formatSize(fileSize), formatDuration(elapsed), speed)
+		fmt.Printf("\n%s: %s (%s, %s)\n", T("Done"), filename, formatSize(fileSize), speed)
 	} else {
-		fmt.Fprintf(os.Stderr, "Error: Unknown file size or no range support\n")
+		fmt.Fprintf(os.Stderr, "%s: %s\n", T("Error"), T("UnknownFileSize"))
 		os.Exit(1)
 	}
 }
@@ -49,7 +51,7 @@ func parallelDownloadCLI(urlStr, filename string, fileSize int64, conns int, sta
 	partFile := filename + ".part"
 	f, err := os.Create(partFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s: %v\n", T("Error"), err)
 		os.Exit(1)
 	}
 	f.Truncate(fileSize)
@@ -57,7 +59,7 @@ func parallelDownloadCLI(urlStr, filename string, fileSize int64, conns int, sta
 
 	f, err = os.OpenFile(partFile, os.O_RDWR, 0666)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s: %v\n", T("Error"), err)
 		os.Exit(1)
 	}
 	defer f.Close()
@@ -134,7 +136,7 @@ loop:
 
 	select {
 	case err := <-errCh:
-		fmt.Fprintf(os.Stderr, "\nError: %v\n", err)
+		fmt.Fprintf(os.Stderr, "\n%s: %v\n", T("Error"), err)
 		f.Close()
 		os.Remove(partFile)
 		os.Exit(1)
@@ -148,14 +150,14 @@ loop:
 func singleDownloadCLI(urlStr, filename string, startTime time.Time) {
 	resp, err := sharedClient.Get(urlStr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s: %v\n", T("Error"), err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
 	f, err := os.Create(filename)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s: %v\n", T("Error"), err)
 		os.Exit(1)
 	}
 	defer f.Close()
@@ -199,7 +201,7 @@ func singleDownloadCLI(urlStr, filename string, startTime time.Time) {
 					formatSize(dld), formatSize(total),
 					s, formatETA(dld, total, elapsed))
 			} else {
-				fmt.Printf("\rDownloaded: %s  %s", formatSize(dld), s)
+				fmt.Printf("\r%s: %s  %s", T("Downloaded"), formatSize(dld), s)
 			}
 		}
 	}

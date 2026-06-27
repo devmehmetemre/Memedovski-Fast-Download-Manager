@@ -49,9 +49,9 @@ func (m *DownloadModel) Value(row, col int) interface{} {
 		return formatSize(item.FileSize)
 	case 2:
 		if item.FileSize > 0 {
-			return float64(item.Progress)
+			return fmt.Sprintf("%.1f%%", float64(item.Progress))
 		}
-		return float64(0)
+		return "0%"
 	case 3:
 		return item.Speed
 	case 4:
@@ -59,7 +59,7 @@ func (m *DownloadModel) Value(row, col int) interface{} {
 	case 5:
 		return item.ETA
 	case 6:
-		return item.Status
+		return T(item.Status)
 	case 7:
 		return strconv.Itoa(item.Connections)
 	}
@@ -77,6 +77,7 @@ var (
 	statusTotal    *walk.Label
 	statusActive   *walk.Label
 	statusSpeed    *walk.Label
+	langCombo      *walk.ComboBox
 	activeCount    int32
 	totalDownloaded int64
 )
@@ -86,21 +87,21 @@ func guiMain() {
 
 	if _, err := (MainWindow{
 		AssignTo: &mw,
-		Title:    "Memedovski Fast Download Manager v2.0",
+		Title:    T("WindowTitle"),
 		MinSize:  Size{900, 600},
 		Size:     Size{1000, 650},
 		Layout:   VBox{Margins: Margins{10, 10, 10, 10}, Spacing: 8},
 		Children: []Widget{
 			GroupBox{
-				Title:  "New Download",
+				Title:  T("NewDownload"),
 				Layout: HBox{Margins: Margins{8, 8, 8, 8}, Spacing: 6},
 				Children: []Widget{
-					Label{Text: "URL:", Font: Font{PointSize: 9}},
+					Label{Text: T("URL")},
 					LineEdit{
 						AssignTo: &urlEntry,
 						MinSize:  Size{400, 0},
 					},
-					Label{Text: "Connections:", Font: Font{PointSize: 9}},
+					Label{Text: T("Connections")},
 					NumberEdit{
 						AssignTo: &connSpin,
 						Value:    100.0,
@@ -110,7 +111,7 @@ func guiMain() {
 					},
 					PushButton{
 						AssignTo: &downloadBtn,
-						Text:     "Download",
+						Text:     T("Download"),
 						MinSize:  Size{100, 30},
 						OnClicked: func() {
 							startDownload()
@@ -122,14 +123,14 @@ func guiMain() {
 				AssignTo: &tasksView,
 				Model:    model,
 				Columns: []TableViewColumn{
-					{Title: "Filename", Width: 250},
-					{Title: "Size", Width: 90},
-					{Title: "Progress", Width: 80},
-					{Title: "Speed", Width: 90},
-					{Title: "Time", Width: 70},
-					{Title: "ETA", Width: 70},
-					{Title: "Status", Width: 90},
-					{Title: "Conns", Width: 50},
+					{Title: T("Filename"), Width: 230},
+					{Title: T("Size"), Width: 90},
+					{Title: T("Progress"), Width: 80},
+					{Title: T("Speed"), Width: 90},
+					{Title: T("Time"), Width: 70},
+					{Title: T("ETA"), Width: 70},
+					{Title: T("Status"), Width: 90},
+					{Title: T("Conns"), Width: 55},
 				},
 			},
 			Composite{
@@ -137,7 +138,7 @@ func guiMain() {
 				Children: []Widget{
 					PushButton{
 						AssignTo: &cancelBtn,
-						Text:     "Cancel Selected",
+						Text:     T("CancelSelected"),
 						Enabled:  false,
 						OnClicked: func() {
 							cancelSelected()
@@ -145,36 +146,39 @@ func guiMain() {
 					},
 					PushButton{
 						AssignTo: &clearBtn,
-						Text:     "Clear Completed",
+						Text:     T("ClearCompleted"),
 						OnClicked: func() {
 							clearCompleted()
 						},
 					},
 					HSpacer{},
-					Label{
-						Text:     "Total: ",
-						Font:     Font{PointSize: 9},
+					Label{Text: T("Language")},
+					ComboBox{
+						AssignTo: &langCombo,
+						Model:    []string{"English", "Türkçe", "中文", "日本語", "한국어", "Deutsch", "Português", "Español", "हिन्दी", "Català", "Русский", "Azərbaycanca", "Қазақша", "O'zbek"},
+						CurrentIndex: int(currentLang),
+						OnCurrentIndexChanged: func() {
+							currentLang = LangID(langCombo.CurrentIndex())
+							mw.SetTitle(T("WindowTitle"))
+							refreshGUI(mw)
+						},
 					},
+					HSpacer{},
+					Label{Text: T("StatusBarTotal")},
 					Label{
 						AssignTo: &statusTotal,
 						Text:     "0 B",
 						Font:     Font{PointSize: 9, Bold: true},
 						MinSize:  Size{80, 0},
 					},
-					Label{
-						Text:    "Active: ",
-						Font:    Font{PointSize: 9},
-					},
+					Label{Text: T("StatusBarActive")},
 					Label{
 						AssignTo: &statusActive,
 						Text:     "0",
 						Font:     Font{PointSize: 9, Bold: true},
 						MinSize:  Size{30, 0},
 					},
-					Label{
-						Text:    "Speed: ",
-						Font:    Font{PointSize: 9},
-					},
+					Label{Text: T("StatusBarSpeed")},
 					Label{
 						AssignTo: &statusSpeed,
 						Text:     "0 B/s",
@@ -190,15 +194,24 @@ func guiMain() {
 	}
 }
 
+func refreshGUI(mw *walk.MainWindow) {
+	// Update dynamic text elements
+	downloadBtn.SetText(T("Download"))
+	cancelBtn.SetText(T("CancelSelected"))
+	clearBtn.SetText(T("ClearCompleted"))
+	updateStatusBar()
+	model.PublishRowsReset()
+}
+
 func startDownload() {
 	urlStr := urlEntry.Text()
 	if urlStr == "" {
-		walk.MsgBox(nil, "Error", "Please enter a URL", walk.MsgBoxIconError)
+		walk.MsgBox(nil, T("ErrorTitle"), T("EnterURL"), walk.MsgBoxIconError)
 		return
 	}
 
 	if _, err := url.ParseRequestURI(urlStr); err != nil {
-		walk.MsgBox(nil, "Error", "Invalid URL", walk.MsgBoxIconError)
+		walk.MsgBox(nil, T("ErrorTitle"), T("InvalidURL"), walk.MsgBoxIconError)
 		return
 	}
 
@@ -248,7 +261,7 @@ func runDownload(task *DownloadTask) {
 		singleDownloadGUI(task)
 		atomic.AddInt32(&activeCount, -1)
 	} else {
-		setTaskStatus(task, "Error: Unknown file size")
+		setTaskStatus(task, "Error: "+T("UnknownFileSize"))
 	}
 	updateStatusBar()
 }
@@ -346,8 +359,7 @@ loop:
 			task.Progress = int(d * 100 / fileSize)
 			remaining := fileSize - d
 			if d > 0 {
-				eta := time.Duration(float64(remaining)/float64(d)) * elapsed
-				task.ETA = formatDuration(eta)
+				task.ETA = formatDuration(time.Duration(float64(remaining)/float64(d)) * elapsed)
 			} else {
 				task.ETA = "-"
 			}
@@ -464,8 +476,7 @@ func singleDownloadGUI(task *DownloadTask) {
 				task.Progress = int(d * 100 / task.FileSize)
 				remaining := task.FileSize - d
 				if d > 0 {
-					eta := time.Duration(float64(remaining)/float64(d)) * elapsed
-					task.ETA = formatDuration(eta)
+					task.ETA = formatDuration(time.Duration(float64(remaining)/float64(d)) * elapsed)
 				}
 			}
 			updateModel()
@@ -526,7 +537,6 @@ func updateStatusBar() {
 	statusActive.SetText(fmt.Sprintf("%d", active))
 	statusTotal.SetText(formatSize(total))
 
-	// Calculate total speed from active tasks
 	var totalSpeed int64
 	for _, t := range model.items {
 		if t.Status == "Downloading" && t.Downloaded > 0 {
