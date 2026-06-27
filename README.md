@@ -2,7 +2,7 @@
 
 <div align="center">
   <h3>Ultra-fast parallel download manager with GUI & CLI</h3>
-  <p>İngilizce / Türkçe çoklu dil desteği</p>
+  <p>İngilizce / Türkçe ve diğer diller için çoklu dil desteği</p>
 </div>
 
 ---
