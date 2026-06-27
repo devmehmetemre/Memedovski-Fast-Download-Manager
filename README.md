@@ -21,7 +21,7 @@
 
 ## 📥 Download
 
-Download the latest `FastDownloader.exe` from [Releases](https://github.com/YOUR_USERNAME/YOUR_REPO/releases).
+Download the latest `FastDownloader.exe` from [Releases](https://github.com/devmehmetemre/Memedovski-Fast-Download-Manager/releases).
 
 **Requirements:** Windows 7+ (64-bit). No installation needed, runs standalone.
 
